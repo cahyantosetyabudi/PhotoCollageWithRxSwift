@@ -27,6 +27,7 @@ import RxSwift
 class PhotosViewController: UICollectionViewController {
 
   // MARK: public properties
+    let bag = DisposeBag()
 
   // MARK: private properties
   private lazy var photos = PhotosViewController.loadPhotos()
