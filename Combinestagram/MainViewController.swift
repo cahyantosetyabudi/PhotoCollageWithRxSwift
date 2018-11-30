@@ -32,6 +32,7 @@ class MainViewController: UIViewController {
 
     let bag = DisposeBag()
     let images = Variable<[UIImage]>([])
+    var imageCache = [Int]()
     
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -45,6 +46,7 @@ class MainViewController: UIViewController {
   
   @IBAction func actionClear() {
     images.value = []
+    imageCache = []
   }
 
   @IBAction func actionSave() {
@@ -60,14 +62,24 @@ class MainViewController: UIViewController {
   @IBAction func actionAdd() {
     let photosViewController = storyboard?.instantiateViewController(withIdentifier: "PhotosViewController") as! PhotosViewController
     let newPhotos = photosViewController.selectedPhotos.share()
+    
+    newPhotos.takeWhile({ (image) -> Bool in
+        return (self.images.value.count) < 6
+    }).filter { (image) -> Bool in
+        return image.size.width > image.size.height
+        }.filter { (image) -> Bool in
+            let length = UIImagePNGRepresentation(image)?.count ?? 0
+            guard self.imageCache.contains(length) == false else { return false }
+            self.imageCache.append(length)
+            return true
+        }.subscribe(onNext: { newImage in
+            self.images.value.append(newImage)
+        }, onDisposed: {
+            print("Completed photo selection")
+        }).disposed(by: bag)
+    
     newPhotos.ignoreElements().subscribe(onCompleted: {
         self.updateNavigationIcon()
-    }).disposed(by: bag)
-
-    photosViewController.selectedPhotos.subscribe(onNext: { newImage in
-        self.images.value.append(newImage)
-    }, onDisposed: {
-        print("Completed photo selection")
     }).disposed(by: bag)
     
     navigationController?.pushViewController(photosViewController, animated: true)
